@@ -45,8 +45,9 @@ const (
 	EventNodeChildrenChanged EventType = 4
 
 	// EventSession represents a session event.
-	EventSession     EventType = -1
-	EventNotWatching EventType = -2
+	EventSession      EventType = -1
+	EventNotWatching  EventType = -2
+	EventDisconnected EventType = -3
 )
 
 var (
@@ -57,6 +58,7 @@ var (
 		EventNodeChildrenChanged: "EventNodeChildrenChanged",
 		EventSession:             "EventSession",
 		EventNotWatching:         "EventNotWatching",
+		EventDisconnected:        "EventDisconnected",
 	}
 )
 
