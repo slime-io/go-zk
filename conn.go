@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -490,7 +491,10 @@ func (c *Conn) loop(ctx context.Context) {
 			}()
 
 			c.sendSetWatches()
+			stopResync := make(chan struct{})
+			c.rsyncWatch(stopResync)
 			wg.Wait()
+			close(stopResync)
 			disconnectTime = time.Now()
 		}
 
@@ -1397,4 +1401,50 @@ func resendZkAuth(ctx context.Context, c *Conn) error {
 	}
 
 	return nil
+}
+
+var rsyncWatchDuration = func() time.Duration {
+	defaultDuration := time.Duration(0)
+	resyncPeriod := os.Getenv("ZK_RESYNC_WATCH_PERIOD")
+	if resyncPeriod == "" {
+		return defaultDuration
+	}
+	duration, err := time.ParseDuration(resyncPeriod)
+	if err != nil {
+		return defaultDuration
+	}
+	return duration
+}()
+
+func (c *Conn) rsyncWatch(stop chan struct{}) {
+	if rsyncWatchDuration == 0 {
+		return
+	}
+	go func() {
+		timer := time.NewTimer(rsyncWatchDuration)
+		for {
+			select {
+			case <-stop:
+				return
+			case <-timer.C:
+				c.watchersLock.Lock()
+				for wpt, watchers := range c.watchers {
+					if wpt.wType == watchTypeChild {
+						for _, ch := range watchers {
+							select {
+							case ch <- Event{
+								Type:  EventResyncWatch,
+								State: StateUnknown,
+								Path:  wpt.path,
+							}:
+							default:
+							}
+						}
+					}
+				}
+				c.watchersLock.Unlock()
+			}
+			timer.Reset(rsyncWatchDuration)
+		}
+	}()
 }

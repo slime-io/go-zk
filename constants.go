@@ -48,6 +48,8 @@ const (
 	EventSession      EventType = -1
 	EventNotWatching  EventType = -2
 	EventDisconnected EventType = -3
+
+	EventResyncWatch EventType = 101
 )
 
 var (
@@ -59,6 +61,7 @@ var (
 		EventSession:             "EventSession",
 		EventNotWatching:         "EventNotWatching",
 		EventDisconnected:        "EventDisconnected",
+		EventResyncWatch:         "EventResyncWatch",
 	}
 )
 
