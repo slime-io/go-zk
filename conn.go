@@ -76,6 +76,7 @@ type Conn struct {
 	xid              uint32
 	sessionTimeoutMs int32 // session timeout in milliseconds
 	passwd           []byte
+	noRetryHosts     bool // if true, will abort when all hosts have been tried (once) and failed
 
 	dialer         Dialer
 	hostProvider   HostProvider
@@ -271,6 +272,12 @@ func WithEventCallback(cb EventCallback) connOption {
 	}
 }
 
+func WithNoRetryHosts() connOption {
+	return func(c *Conn) {
+		c.noRetryHosts = true
+	}
+}
+
 // WithMaxBufferSize sets the maximum buffer size used to read and decode
 // packets received from the Zookeeper server. The standard Zookeeper client for
 // Java defaults to a limit of 1mb. For backwards compatibility, this Go client
@@ -375,10 +382,19 @@ func (c *Conn) connect() error {
 
 		if retryStart {
 			c.flushUnsentRequests(ErrNoServer)
-			select {
-			case <-time.After(time.Second):
-				// pass
-			case <-c.shouldQuit:
+
+			shouldQuit := c.noRetryHosts
+
+			if !shouldQuit {
+				select {
+				case <-time.After(time.Second):
+					// pass
+				case <-c.shouldQuit:
+					shouldQuit = true
+				}
+			}
+
+			if shouldQuit {
 				c.setState(StateDisconnected)
 				c.flushUnsentRequests(ErrClosing)
 				return ErrClosing
