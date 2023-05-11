@@ -48,6 +48,7 @@ const (
 	EventSession      EventType = -1
 	EventNotWatching  EventType = -2
 	EventDisconnected EventType = -3
+	EventAuthFailed   EventType = -4
 
 	EventResyncWatch EventType = 101
 )

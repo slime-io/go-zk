@@ -461,7 +461,7 @@ func (c *Conn) loop(ctx context.Context) {
 			c.logger.Printf("authentication failed: %s", err)
 			c.conn.Close()
 			if err == io.EOF && !disconnectTime.IsZero() && c.sessionExpired(disconnectTime) {
-				c.sendEvent(Event{Type: EventDisconnected, State: StateDisconnected, Server: c.Server()})
+				c.sendEvent(Event{Type: EventAuthFailed, State: StateDisconnected, Server: c.Server()})
 			}
 		case err == nil:
 			if c.logInfo {
@@ -514,6 +514,7 @@ func (c *Conn) loop(ctx context.Context) {
 			disconnectTime = time.Now()
 		}
 
+		c.sendEvent(Event{Type: EventDisconnected, State: StateDisconnected, Server: c.Server()})
 		c.setState(StateDisconnected)
 
 		select {
