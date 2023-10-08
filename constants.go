@@ -78,6 +78,9 @@ const (
 
 	StateConnected  = State(100)
 	StateHasSession = State(101)
+
+	// StateCreated is used as the initial state set when creating a new Conn object.
+	StateCreated = State(200)
 )
 
 const (
@@ -98,6 +101,7 @@ var (
 		StateConnecting:        "StateConnecting",
 		StateConnected:         "StateConnected",
 		StateHasSession:        "StateHasSession",
+		StateCreated:           "StateCreated",
 	}
 )
 

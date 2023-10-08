@@ -195,7 +195,7 @@ func Connect(servers []string, sessionTimeout time.Duration, options ...connOpti
 		dialer:         net.DialTimeout,
 		hostProvider:   &DNSHostProvider{},
 		conn:           nil,
-		state:          StateDisconnected,
+		state:          StateCreated,
 		eventChan:      ec,
 		shouldQuit:     make(chan struct{}),
 		connectTimeout: 1 * time.Second,
