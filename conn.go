@@ -356,6 +356,9 @@ func (c *Conn) setTimeouts(sessionTimeoutMs int32) {
 
 func (c *Conn) setState(state State) {
 	atomic.StoreInt32((*int32)(&c.state), int32(state))
+	if c.logInfo {
+		c.logger.Printf("state changed to %s", state.String())
+	}
 	c.sendEvent(Event{Type: EventSession, State: state, Server: c.Server()})
 }
 
@@ -514,8 +517,9 @@ func (c *Conn) loop(ctx context.Context) {
 			disconnectTime = time.Now()
 		}
 
-		c.sendEvent(Event{Type: EventDisconnected, State: StateDisconnected, Server: c.Server()})
 		c.setState(StateDisconnected)
+		// send disconnected event after setting state to disconnected
+		c.sendEvent(Event{Type: EventDisconnected, State: StateDisconnected, Server: c.Server()})
 
 		select {
 		case <-c.shouldQuit:
