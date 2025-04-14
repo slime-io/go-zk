@@ -923,7 +923,6 @@ func (c *Conn) addWatcher(path string, watchType watchType) <-chan Event {
 	c.watchers[wpt] = append(c.watchers[wpt], ch)
 	return ch
 }
-
 func (c *Conn) queueRequest(opcode int32, req interface{}, res interface{}, recvFunc func(*request, *responseHeader, error)) <-chan response {
 	rq := &request{
 		xid:        c.nextXid(),
@@ -1023,6 +1022,40 @@ func (c *Conn) ChildrenW(path string) ([]string, *Stat, <-chan Event, error) {
 	if err := validatePath(path, false); err != nil {
 		return nil, nil, nil, err
 	}
+
+	var ech <-chan Event
+	res := &getChildren2Response{}
+	_, err := c.request(opGetChildren2, &getChildren2Request{Path: path, Watch: true}, res, func(req *request, res *responseHeader, err error) {
+		if err == nil {
+			ech = c.addWatcher(path, watchTypeChild)
+		}
+	})
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return res.Children, &res.Stat, ech, err
+}
+
+// ChildrenWOnce returns the children of a znode and sets a watch if no watcher.
+func (c *Conn) ChildrenWOnce(path string) ([]string, *Stat, <-chan Event, error) {
+	if err := validatePath(path, false); err != nil {
+		return nil, nil, nil, err
+	}
+
+	wpt := watchPathType{path, watchTypeChild}
+
+	c.watchersLock.Lock()
+	if len(c.watchers[wpt]) > 0 {
+		ech := c.watchers[wpt][0]
+		c.watchersLock.Unlock()
+		res := &getChildren2Response{}
+		_, err := c.request(opGetChildren2, &getChildren2Request{Path: path, Watch: false}, res, nil)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return res.Children, &res.Stat, ech, err
+	}
+	c.watchersLock.Unlock()
 
 	var ech <-chan Event
 	res := &getChildren2Response{}
